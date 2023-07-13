@@ -26,6 +26,7 @@ from copy import copy
 from itertools import chain
 import logging
 import sys
+import random
 
 from api.utils import or_default, pairwise, sample2
 
@@ -33,6 +34,8 @@ from api.utils import or_default, pairwise, sample2
 class Component:
     u: int
     v: int
+    candle_len: int
+    candle_speed: int
 
     @property
     def cid(self) -> Hashable:
@@ -48,7 +51,7 @@ if sys.version_info < (3, 9):
     Used = NewType('Used', set)
     Unused = NewType('Unused', set)
 else:
-    Path = NewType('Path', list[int])
+    Path = NewType('Path', list[Component])
     Used = NewType('Used', set[int])
     Unused = NewType('Unused', set[int])
 
@@ -67,6 +70,7 @@ class Solution():
         self.unused = unused
         self.dist = dist
 
+
     def output(self) -> str:
         return "\n".join(map(str, self.path))
 
@@ -79,13 +83,18 @@ class Solution():
                               self.dist)
 
     def is_feasible(self) -> bool:
-        return len(self.path) == self.problem.nnodes + 1
+        return True
 
     def objective(self) -> Optional[float]:
-        if len(self.path) == self.problem.nnodes + 1:
-            return self.dist
+        reward = 0
+        if self.path != []:
+            current_time = self.problem.dist[0][self.path[0]]
+            for i in range(len(self.path)-1):
+                reward += self.problem.coords[self.path[i]].candle_len - (current_time*self.problem.coords[self.path[i]].candle_speed)
+                current_time += self.problem.dist[self.path[i]][self.path[i+1]]
+            return reward
         else:
-            return None
+            return 0
 
     def lower_bound(self) -> Optional[float]:
         return self.dist
@@ -94,10 +103,10 @@ class Solution():
         if len(self.path) < self.problem.nnodes:
             u = self.path[-1]
             for v in self.unused:
-                yield Component(u, v)
-        elif len(self.path) == self.problem.nnodes:
-            u = self.path[-1]
-            yield Component(u, self.start)
+                yield Component(u, v, self.problem.coords[self.path[-1]].candle_len, self.problem.coords[self.path[-1]].candle_speed)
+        # elif len(self.path) == self.problem.nnodes:
+        #     u = self.path[-1]
+        #     yield Component(u, self.start)
 
     def local_moves(self) -> Iterable[LocalMove]:
         for i in range(1, len(self.path)):
@@ -197,9 +206,9 @@ else:
     DistMatrix = tuple[tuple[float, ...], ...]
 
 def manhattan_distance(a: Point, b: Point) -> float:
-    dx = a.x - b.x
-    dy = a.y - b.y
-    return dx + dy
+    dx = a.u - b.u
+    dy = a.v - b.v
+    return abs(dx) + abs(dy)
 
 def distance_matrix(coords: CoordList) -> DistMatrix:
     mat = []
@@ -211,19 +220,28 @@ def distance_matrix(coords: CoordList) -> DistMatrix:
     return tuple(mat)
 
 class Problem():
-    def __init__(self, coords: CoordList) -> None:
+    def __init__(self, coords: CoordList, start: Component) -> None:
         self.nnodes = len(coords)
         self.coords = coords
         self.dist = distance_matrix(coords)
-        
+        self.start = start
+
     @classmethod
     def from_textio(cls, f: TextIO) -> Problem:
+        """
+        Create a problem from a text I/O source `f`
+        """
         n = int(f.readline())
-        coords = []
-        for _ in range(n):
-            x, y = map(float, f.readline().split())
-            coords.append(Point(x, y))
-        return cls(coords)
+
+        villages = []
+
+        start_u, start_v = map(int, f.readline().split())
+        start = Component(start_u, start_v, 0, 0)
+
+        for _ in range(n-1):
+            u, v, h, s = map(int, f.readline().split())
+            villages.append(Component(u, v, h, s))
+        return cls(villages, start)
 
     def empty_solution(self) -> Solution:
         return Solution(self, 0, [0], {0}, set(range(1, self.nnodes)), 0)
