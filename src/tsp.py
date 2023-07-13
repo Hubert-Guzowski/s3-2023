@@ -196,17 +196,17 @@ else:
     CoordList = Sequence[Point]
     DistMatrix = tuple[tuple[float, ...], ...]
 
-def euclidean_dist(a: Point, b: Point) -> float:
+def manhattan_distance(a: Point, b: Point) -> float:
     dx = a.x - b.x
     dy = a.y - b.y
-    return sqrt(dx*dx + dy*dy)
+    return dx + dy
 
 def distance_matrix(coords: CoordList) -> DistMatrix:
     mat = []
     for a in coords:
         row = []
         for b in coords:
-            row.append(euclidean_dist(a, b))
+            row.append(manhattan_distance(a, b))
         mat.append(tuple(row))
     return tuple(mat)
 
