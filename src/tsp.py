@@ -51,7 +51,7 @@ if sys.version_info < (3, 9):
     Used = NewType('Used', set)
     Unused = NewType('Unused', set)
 else:
-    Path = NewType('Path', list[int])
+    Path = NewType('Path', list[Component])
     Used = NewType('Used', set[int])
     Unused = NewType('Unused', set[int])
 
@@ -70,6 +70,7 @@ class Solution():
         self.unused = unused
         self.dist = dist
 
+
     def output(self) -> str:
         return "\n".join(map(str, self.path))
 
@@ -82,13 +83,18 @@ class Solution():
                               self.dist)
 
     def is_feasible(self) -> bool:
-        return len(self.path) == self.problem.nnodes + 1
+        return True
 
     def objective(self) -> Optional[float]:
-        if len(self.path) == self.problem.nnodes + 1:
-            return self.dist
+        reward = 0
+        if self.path != []:
+            current_time = self.problem.dist[0][self.path[0]]
+            for i in range(len(self.path)-1):
+                reward += self.problem.coords[self.path[i]].candle_len - (current_time*self.problem.coords[self.path[i]].candle_speed)
+                current_time += self.problem.dist[self.path[i]][self.path[i+1]]
+            return reward
         else:
-            return None
+            return 0
 
     def lower_bound(self) -> Optional[float]:
         return self.dist
@@ -97,10 +103,10 @@ class Solution():
         if len(self.path) < self.problem.nnodes:
             u = self.path[-1]
             for v in self.unused:
-                yield Component(u, v)
-        elif len(self.path) == self.problem.nnodes:
-            u = self.path[-1]
-            yield Component(u, self.start)
+                yield Component(u, v, self.problem.coords[self.path[-1]].candle_len, self.problem.coords[self.path[-1]].candle_speed)
+        # elif len(self.path) == self.problem.nnodes:
+        #     u = self.path[-1]
+        #     yield Component(u, self.start)
 
     def local_moves(self) -> Iterable[LocalMove]:
         for i in range(1, len(self.path)):
@@ -200,9 +206,9 @@ else:
     DistMatrix = tuple[tuple[float, ...], ...]
 
 def manhattan_distance(a: Point, b: Point) -> float:
-    dx = a.x - b.x
-    dy = a.y - b.y
-    return dx + dy
+    dx = a.u - b.u
+    dy = a.v - b.v
+    return abs(dx) + abs(dy)
 
 def distance_matrix(coords: CoordList) -> DistMatrix:
     mat = []
