@@ -17,17 +17,24 @@
 
 from __future__ import annotations
 
-from typing import TextIO, Optional, Any
+from typing import TextIO, Optional, Any, List
 from collections.abc import Iterable, Hashable
+from dataclasses import dataclass
 
 import logging
 
 Objective = Any
 
+@dataclass
 class Component:
+    x: int
+    y: int
+    candle_len: int
+    candle_speed: int
+
     @property
     def cid(self) -> Hashable:
-        raise NotImplementedError
+        return self.x, self.y
 
 class LocalMove:
     ...
@@ -154,12 +161,28 @@ class Solution:
         raise NotImplementedError
 
 class Problem:
+
+    def __init__(self, villages: List[Component]) -> None:
+        self.nnodes = len(villages)
+        self.villages = villages
+
     @classmethod
     def from_textio(cls, f: TextIO) -> Problem:
         """
         Create a problem from a text I/O source `f`
         """
-        raise NotImplementedError
+        n = int(f.readline())
+
+        villages = []
+
+        start_x, start_y = map(int, f.readline().split())
+        start = Component(start_x, start_y, 0, 0)
+        villages.append(start)
+
+        for _ in range(n-1):
+            x, y, h, s = map(int, f.readline().split())
+            villages.append(Component(x, y, h, s))
+        return cls(villages)
 
     def empty_solution(self) -> Solution:
         """
