@@ -188,7 +188,7 @@ class Problem:
         """
         Create an empty solution (i.e. with no components).
         """
-        raise NotImplementedError
+        return []
 
 
 if __name__ == '__main__':

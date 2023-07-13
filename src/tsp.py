@@ -26,6 +26,7 @@ from copy import copy
 from itertools import chain
 import logging
 import sys
+import random
 
 from api.utils import or_default, pairwise, sample2
 
@@ -33,6 +34,8 @@ from api.utils import or_default, pairwise, sample2
 class Component:
     u: int
     v: int
+    candle_len: int
+    candle_speed: int
 
     @property
     def cid(self) -> Hashable:
@@ -211,19 +214,28 @@ def distance_matrix(coords: CoordList) -> DistMatrix:
     return tuple(mat)
 
 class Problem():
-    def __init__(self, coords: CoordList) -> None:
+    def __init__(self, coords: CoordList, start: Component) -> None:
         self.nnodes = len(coords)
         self.coords = coords
         self.dist = distance_matrix(coords)
-        
+        self.start = start
+
     @classmethod
     def from_textio(cls, f: TextIO) -> Problem:
+        """
+        Create a problem from a text I/O source `f`
+        """
         n = int(f.readline())
-        coords = []
-        for _ in range(n):
-            x, y = map(float, f.readline().split())
-            coords.append(Point(x, y))
-        return cls(coords)
+
+        villages = []
+
+        start_u, start_v = map(int, f.readline().split())
+        start = Component(start_u, start_v, 0, 0)
+
+        for _ in range(n-1):
+            u, v, h, s = map(int, f.readline().split())
+            villages.append(Component(u, v, h, s))
+        return cls(villages, start)
 
     def empty_solution(self) -> Solution:
         return Solution(self, 0, [0], {0}, set(range(1, self.nnodes)), 0)
