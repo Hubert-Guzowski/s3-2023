@@ -26,6 +26,7 @@ from copy import copy
 from itertools import chain
 import logging
 import sys
+import random
 
 from api.utils import or_default, pairwise, sample2
 
