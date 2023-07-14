@@ -72,7 +72,7 @@ class Solution():
 
 
     def output(self) -> str:
-        return "\n".join(map(str, self.path))
+        return "\n".join(map(str, self.path[1:]))
 
     def copy(self):
         return self.__class__(self.problem,
@@ -88,10 +88,11 @@ class Solution():
     def objective(self) -> Optional[float]:
         reward = 0
         if self.path != []:
-            current_time = self.problem.dist[0][self.path[0]]
+            current_time = 0 # self.problem.dist[0][self.path[0]]
             for i in range(len(self.path)-1):
                 reward += max(0, self.problem.coords[self.path[i]].candle_len - (current_time*self.problem.coords[self.path[i]].candle_speed))
                 current_time += self.problem.dist[self.path[i]][self.path[i+1]]
+            reward += max(0, self.problem.coords[self.path[-1]].candle_len - (current_time*self.problem.coords[self.path[-1]].candle_speed))
             return -reward  # WE ARE WORKING WITH A MINIMIZATION FRAMEWORK --> flipped to min problem!
         else:
             return 0
@@ -176,6 +177,7 @@ class Solution():
         return ndist - self.dist
 
     def lower_bound_incr_add(self, component: Component) -> Optional[float]:
+        # TODO
         if len(self.path) + 1 <= cast(Problem, self.problem).nnodes:
             u, v = component.u, component.v
             d = self.problem.dist[u][v]
@@ -240,7 +242,7 @@ class Problem():
 
         start_u, start_v = map(int, f.readline().split())
         start = Component(start_u, start_v, 0, 0)
-
+        villages.append(start)
         for _ in range(n-1):
             u, v, h, s = map(int, f.readline().split())
             villages.append(Component(u, v, h, s))
@@ -307,6 +309,7 @@ if __name__ == '__main__':
             lbudget = 1.0 / len(ants)
             s = mmas(ants, args.cbudget, beta = 5.0, rho = 0.05, taumax = 1 / 3000.0, globalratio = 0.1,
                      local_search = lambda s: first_improvement(s, lbudget))
+    print('done csearch!')
 
     if s is not None:
         if args.lsearch == 'bi':
@@ -323,7 +326,7 @@ if __name__ == '__main__':
     end = perf_counter()
 
     if s is not None:
-        # print(s.output(), file=args.output_file)
+        print(s.output(), file=args.output_file)
         if s.objective() is not None:
             logging.info(f"Objective: {s.objective():.3f}")
         else:
