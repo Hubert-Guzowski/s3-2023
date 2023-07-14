@@ -90,9 +90,9 @@ class Solution():
         if self.path != []:
             current_time = self.problem.dist[0][self.path[0]]
             for i in range(len(self.path)-1):
-                reward += self.problem.coords[self.path[i]].candle_len - (current_time*self.problem.coords[self.path[i]].candle_speed)
+                reward += max(0, self.problem.coords[self.path[i]].candle_len - (current_time*self.problem.coords[self.path[i]].candle_speed))
                 current_time += self.problem.dist[self.path[i]][self.path[i+1]]
-            return reward
+            return -reward  # WE ARE WORKING WITH A MINIMIZATION FRAMEWORK --> flipped to min problem!
         else:
             return 0
 
@@ -135,12 +135,12 @@ class Solution():
             for v in self.unused:
                 d = self.problem.dist[u][v] 
                 if bestd is None or d < bestd:
-                    best = Component(u, v)
+                    best = Component(u, v, self.problem.coords[self.path[-1]].candle_len, self.problem.coords[self.path[-1]].candle_speed)
                     bestd = d
             return best
-        elif len(self.path) == self.problem.nnodes:
-            u = self.path[-1]
-            return Component(u, self.start)
+        # elif len(self.path) == self.problem.nnodes:
+        #     u = self.path[-1]
+        #     return Component(u, self.start)
         return None
 
     def add(self, component: Component) -> None:
@@ -159,12 +159,12 @@ class Solution():
         self.dist += self.problem.dist[self.path[i-1]][self.path[i]]
         self.dist += self.problem.dist[self.path[j-1]][self.path[j]]
 
-        if __debug__:
-            dist = sum(map(lambda t: self.problem.dist[t[0]][t[1]],
-                           pairwise(self.path)))
-            assert isclose(dist, self.dist), (dist, self.dist)
-            assert self.path[0] == self.start, self.path
-            assert self.path[-1] == self.start, self.path
+        # if __debug__:
+        #     dist = sum(map(lambda t: self.problem.dist[t[0]][t[1]],
+        #                    pairwise(self.path)))
+        #     assert isclose(dist, self.dist), (dist, self.dist)
+        #     assert self.path[0] == self.start, self.path
+        #     assert self.path[-1] == self.start, self.path
 
     def objective_incr_local(self, lmove: LocalMove) -> Optional[float]:
         i, j = lmove.i, lmove.j
@@ -191,7 +191,10 @@ class Solution():
 
     def components(self) -> Iterable[Component]:
         for i in range(1, len(self.path)):
-            yield Component(self.path[i-1], self.path[i])
+            yield Component(self.path[i-1], self.path[i], self.problem.coords[self.path[-1]].candle_len,
+                      self.problem.coords[self.path[-1]].candle_speed)
+
+
 
 @dataclass
 class Point:
@@ -320,7 +323,7 @@ if __name__ == '__main__':
     end = perf_counter()
 
     if s is not None:
-        print(s.output(), file=args.output_file)
+        # print(s.output(), file=args.output_file)
         if s.objective() is not None:
             logging.info(f"Objective: {s.objective():.3f}")
         else:
